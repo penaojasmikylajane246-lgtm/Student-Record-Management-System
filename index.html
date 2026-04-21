@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CICS SRMS — Student & Faculty Portal</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+/* ── Variables ──────────────────────────────────────────── */
+:root{
+  --forest:#064e3b;--emerald:#047857;--mint:#059669;--sage:#6ee7b7;
+  --cream:#f8faf9;--charcoal:#1a2420;--muted:#64748b;--border:#e2e8f0;
+  --danger:#dc2626;--radius:16px;
+  --shadow:0 4px 24px rgba(6,78,59,.10);--shadow-lg:0 12px 48px rgba(6,78,59,.16);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;color:var(--charcoal);min-height:100vh;background:var(--cream)}
+h1,h2,h3,h4,h5,h6{font-family:'DM Serif Display',serif}
+
+/* ── Toast ──────────────────────────────────────────────── */
+.toast-wrap{position:fixed;top:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast-msg{display:flex;align-items:center;gap:10px;padding:13px 18px;border-radius:12px;font-size:.88rem;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.15);animation:slideIn .3s ease;min-width:250px;max-width:340px;pointer-events:all}
+@keyframes slideIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+.toast-success{background:#d1fae5;color:#065f46}
+.toast-error{background:#fee2e2;color:#991b1b}
+.toast-info{background:#dbeafe;color:#1e3a8a}
+
+/* ══════════════════════════════════════════════════════════
+   AUTH VIEWS
+══════════════════════════════════════════════════════════ */
+.auth-bg{
+  min-height:100vh;
+  background:linear-gradient(140deg,#064e3b 0%,#047857 55%,#10b981 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:28px 16px;position:relative;overflow:hidden
+}
+.auth-bg::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M40 40h4v4h-4zm0-20h4v4h-4zm20 20h4v4h-4zm-40 0h4v4h-4z'/%3E%3C/g%3E%3C/svg%3E")
+}
+.auth-school{text-align:center;color:white;margin-bottom:24px;position:relative}
+.auth-school-icon{width:62px;height:62px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;color:white;margin:0 auto 12px}
+.auth-school h2{font-size:1.35rem;letter-spacing:-.3px}
+.auth-school p{font-size:.85rem;opacity:.75;margin-top:4px}
+
+/* Login Card */
+.login-card{background:white;border-radius:24px;box-shadow:0 24px 64px rgba(0,0,0,.28);width:100%;max-width:420px;overflow:hidden;position:relative}
+.role-tabs{display:flex;background:#f1f5f4;border-radius:12px;padding:4px;margin-bottom:24px}
+.role-tab{flex:1;text-align:center;padding:10px 8px;border-radius:9px;font-weight:600;font-size:.88rem;cursor:pointer;transition:all .2s;color:var(--muted);user-select:none;display:flex;align-items:center;justify-content:center;gap:6px}
+.role-tab.active{background:white;color:var(--forest);box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.login-card-header{background:linear-gradient(135deg,var(--forest),var(--emerald));padding:24px 28px 20px;color:white;text-align:center}
+.login-card-header h3{font-size:1.3rem;margin-bottom:4px}
+.login-card-header p{font-size:.82rem;opacity:.8}
+.login-card-body{padding:28px}
+
+/* Register full-page card */
+.reg-wrap{width:100%;max-width:680px;position:relative}
+.reg-back-btn{display:inline-flex;align-items:center;gap:8px;color:rgba(255,255,255,.85);font-weight:600;font-size:.9rem;cursor:pointer;margin-bottom:18px;transition:color .2s;border:none;background:none;padding:0}
+.reg-back-btn:hover{color:white}
+.reg-card{background:white;border-radius:24px;box-shadow:0 24px 64px rgba(0,0,0,.28);overflow:hidden}
+.reg-card-header{background:linear-gradient(135deg,var(--forest),var(--emerald));padding:22px 28px;color:white}
+.reg-card-header h3{font-size:1.2rem;margin-bottom:3px}
+.reg-card-header p{font-size:.82rem;opacity:.8}
+.reg-card-body{padding:28px}
+
+/* ── Shared form styles ─────────────────────────────────── */
+.form-label{font-weight:600;font-size:.83rem;color:var(--charcoal);margin-bottom:5px}
+.form-control,.form-select{border-radius:10px;border:1.5px solid var(--border);padding:9px 13px;font-size:.9rem;transition:border-color .2s,box-shadow .2s}
+.form-control:focus,.form-select:focus{border-color:var(--emerald);box-shadow:0 0 0 3px rgba(4,120,87,.12);outline:none}
+.form-control.is-invalid,.form-select.is-invalid{border-color:var(--danger)}
+.invalid-feedback{font-size:.78rem}
+.section-divider{font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;padding:14px 0 8px;border-bottom:1px solid var(--border);margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.btn{font-weight:600;border-radius:10px;transition:all .2s}
+.btn-forest{background:var(--forest);color:white;border:none;padding:10px 22px}
+.btn-forest:hover{background:var(--emerald);color:white;transform:translateY(-1px);box-shadow:0 6px 20px rgba(6,78,59,.3)}
+.btn-outline-forest{border:1.5px solid var(--forest);color:var(--forest);background:white;padding:10px 22px}
+.btn-outline-forest:hover{background:var(--forest);color:white}
+.btn-sm{padding:4px 10px!important;font-size:.78rem!important}
+.btn-edit{background:#dbeafe;color:#1d4ed8;border:none}
+.btn-edit:hover{background:#bfdbfe;color:#1d4ed8}
+.btn-del{background:#fee2e2;color:var(--danger);border:none}
+.btn-del:hover{background:#fecaca;color:var(--danger)}
+.btn-view{background:#f0fdf4;color:var(--forest);border:none}
+.btn-view:hover{background:#dcfce7;color:var(--forest)}
+.btn-unlock{background:#fef3c7;color:#92400e;border:none}
+.btn-unlock:hover{background:#fde68a;color:#92400e}
+
+/* ── Photo upload ───────────────────────────────────────── */
+.photo-upload-area{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:6px}
+.photo-preview{width:88px;height:88px;border-radius:50%;border:3px solid var(--border);background:linear-gradient(135deg,var(--forest),var(--mint));display:flex;align-items:center;justify-content:center;color:white;font-size:1.8rem;font-family:'DM Serif Display',serif;overflow:hidden;cursor:pointer;position:relative;transition:border-color .2s}
+.photo-preview:hover{border-color:var(--emerald)}
+.photo-preview img{width:100%;height:100%;object-fit:cover}
+.photo-overlay{position:absolute;inset:0;background:rgba(0,0,0,.45);border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s}
+.photo-preview:hover .photo-overlay{opacity:1}
+.photo-overlay i{color:white;font-size:1.1rem}
+
+/* ══════════════════════════════════════════════════════════
+   STUDENT PORTAL
+══════════════════════════════════════════════════════════ */
+#appStudent{min-height:100vh;background:var(--cream)}
+.stu-nav{background:var(--forest);color:white;padding:12px 0;box-shadow:0 2px 16px rgba(6,78,59,.35);position:sticky;top:0;z-index:100}
+.stu-nav .brand{font-family:'DM Serif Display',serif;font-size:1.15rem}
+
+.student-profile-wrap{max-width:700px;margin:36px auto;padding:0 16px}
+.profile-card{background:white;border-radius:24px;box-shadow:var(--shadow-lg);border:1px solid var(--border);overflow:hidden}
+.profile-banner{height:130px;background:linear-gradient(135deg,var(--forest),var(--mint));position:relative}
+.profile-banner-content{position:absolute;bottom:0;left:0;right:0;padding:0 32px 0 160px;display:flex;align-items:flex-end;padding-bottom:16px}
+.profile-photo-wrap{position:absolute;left:28px;bottom:-44px}
+.profile-photo{width:96px;height:96px;border-radius:50%;border:4px solid white;background:linear-gradient(135deg,var(--forest),var(--mint));display:flex;align-items:center;justify-content:center;font-size:2rem;color:white;font-family:'DM Serif Display',serif;overflow:hidden;box-shadow:0 8px 24px rgba(6,78,59,.3)}
+.profile-photo img{width:100%;height:100%;object-fit:cover}
+.profile-body{padding:58px 32px 32px}
+.profile-name{font-size:1.6rem;margin-bottom:2px}
+.locked-notice{display:inline-flex;align-items:center;gap:6px;background:#fef3c7;color:#92400e;border-radius:999px;padding:4px 14px;font-size:.78rem;font-weight:600;margin-bottom:20px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.info-field{padding:12px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start}
+.info-field:nth-last-child(-n+2){border-bottom:none}
+.info-field i{color:var(--emerald);width:18px;flex-shrink:0;margin-top:2px}
+.info-field-label{font-size:.73rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:2px}
+.info-field-val{font-size:.9rem;font-weight:500}
+.info-section-head{grid-column:1/-1;font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;padding:16px 0 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px}
+.program-badge{display:inline-block;padding:4px 12px;border-radius:999px;font-size:.78rem;font-weight:600}
+.badge-bsit{background:#d1fae5;color:#065f46}
+.badge-bsis{background:#dbeafe;color:#1e40af}
+
+/* ══════════════════════════════════════════════════════════
+   FACULTY APP
+══════════════════════════════════════════════════════════ */
+#appFaculty{min-height:100vh;background:var(--cream)}
+.fac-nav{background:var(--forest);box-shadow:0 2px 16px rgba(6,78,59,.35);padding:12px 0;position:sticky;top:0;z-index:100}
+.fac-nav .navbar-brand{font-family:'DM Serif Display',serif;font-size:1.2rem}
+.fac-nav-link{font-weight:500;font-size:.88rem;border-radius:8px;padding:6px 13px;transition:background .2s,color .2s;cursor:pointer;color:rgba(255,255,255,.75)!important}
+.fac-nav-link:hover,.fac-nav-link.active{background:rgba(110,231,183,.15);color:var(--sage)!important}
+
+/* Stat cards */
+.stat-card{border-radius:var(--radius);padding:26px 22px;position:relative;overflow:hidden;color:white}
+.stat-card::after{content:'';position:absolute;right:-18px;bottom:-18px;width:88px;height:88px;border-radius:50%;background:rgba(255,255,255,.08)}
+.stat-1{background:linear-gradient(135deg,var(--forest),var(--mint))}
+.stat-2{background:linear-gradient(135deg,#065f46,var(--emerald))}
+.stat-3{background:linear-gradient(135deg,#064e3b,#047857)}
+.stat-4{background:linear-gradient(135deg,#1e3a5f,#2563eb)}
+.stat-5{background:linear-gradient(135deg,#6b21a8,#7c3aed)}
+.stat-number{font-family:'DM Serif Display',serif;font-size:2.5rem;line-height:1;margin-bottom:5px}
+.stat-label{font-size:.82rem;opacity:.85;font-weight:500}
+.stat-icon{font-size:2rem;opacity:.2;position:absolute;top:14px;right:16px}
+
+/* Mini stats */
+.mini-stat{background:white;border-radius:12px;padding:13px 16px;box-shadow:var(--shadow);border:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.mini-stat-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.85rem;color:white;font-weight:700;flex-shrink:0}
+.mini-stat-num{font-family:'DM Serif Display',serif;font-size:1.4rem;line-height:1}
+.mini-stat-lbl{font-size:.72rem;color:var(--muted);font-weight:500}
+
+/* Table */
+.table-wrap{background:white;border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);overflow:hidden;margin-top:18px}
+.table-wrap-header{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;border-bottom:1px solid var(--border)}
+.table{margin:0}
+.table th{background:#f1f5f4;color:var(--forest);font-weight:600;font-size:.75rem;letter-spacing:.6px;text-transform:uppercase;padding:12px 13px;border:none}
+.table td{padding:10px 13px;vertical-align:middle;border-color:#f0f4f2;font-size:.88rem}
+.table tbody tr{transition:background .15s}
+.table tbody tr:hover{background:#f8fdf9}
+
+/* Badges */
+.badge-prog{display:inline-block;padding:3px 9px;border-radius:7px;font-size:.73rem;font-weight:600}
+.badge-yr{background:#fef3c7;color:#92400e;font-size:.73rem;padding:2px 8px;border-radius:6px;font-weight:600}
+.status-badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:.73rem;font-weight:600}
+.status-active{background:#d1fae5;color:#065f46}
+.status-inactive{background:#f1f5f9;color:#475569}
+.status-graduated{background:#ede9fe;color:#5b21b6}
+.status-loa{background:#fef3c7;color:#92400e}
+.lock-icon{color:#d97706;font-size:.8rem;margin-left:4px}
+
+/* Search */
+.search-box{position:relative;max-width:240px;width:100%}
+.search-box input{padding-left:34px;border-radius:10px;border:1.5px solid var(--border);font-size:.86rem;height:36px;width:100%;transition:border-color .2s;background:white}
+.search-box input:focus{outline:none;border-color:var(--emerald);box-shadow:0 0 0 3px rgba(4,120,87,.12)}
+.search-box i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.85rem}
+
+/* Avatars */
+.s-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--forest),var(--mint));display:flex;align-items:center;justify-content:center;color:white;font-size:.72rem;font-weight:700;font-family:'DM Serif Display',serif;flex-shrink:0;border:2px solid var(--border);overflow:hidden}
+.s-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+
+/* Empty / Loading */
+.empty-state{text-align:center;padding:46px 20px;color:var(--muted)}
+.empty-state i{font-size:2.6rem;opacity:.3;display:block;margin-bottom:12px}
+
+/* View modal */
+.view-banner{height:90px;background:linear-gradient(135deg,var(--forest),var(--mint))}
+.view-avatar{width:78px;height:78px;border-radius:50%;border:3px solid white;background:linear-gradient(135deg,var(--forest),var(--mint));display:flex;align-items:center;justify-content:center;font-size:1.7rem;color:white;font-family:'DM Serif Display',serif;overflow:hidden;margin:-39px auto 10px;box-shadow:0 6px 20px rgba(6,78,59,.25)}
+.view-avatar img{width:100%;height:100%;object-fit:cover}
+.view-field{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:.86rem}
+.view-field:last-child{border-bottom:none}
+.view-field i{color:var(--emerald);width:17px;flex-shrink:0;margin-top:1px}
+.view-field-label{color:var(--muted);font-size:.75rem;display:block}
+
+/* Modal */
+.modal-content{border-radius:20px;border:none;box-shadow:var(--shadow-lg)}
+.modal-header{background:linear-gradient(135deg,var(--forest),var(--emerald));color:white;border-radius:20px 20px 0 0;padding:17px 22px}
+.modal-header .btn-close{filter:invert(1)}
+.modal-body{padding:22px}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border)}
+
+/* Activity */
+.log-item{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);font-size:.86rem}
+.log-item:last-child{border-bottom:none}
+.log-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.82rem;flex-shrink:0}
+.log-create{background:#d1fae5;color:#065f46}
+.log-update{background:#dbeafe;color:#1e40af}
+.log-delete{background:#fee2e2;color:#991b1b}
+.log-register{background:#ede9fe;color:#5b21b6}
+.log-unlock{background:#fef3c7;color:#92400e}
+.log-time{font-size:.73rem;color:var(--muted);margin-top:2px}
+
+/* About */
+.about-card{background:white;border-radius:var(--radius);padding:34px;box-shadow:var(--shadow);border:1px solid var(--border)}
+
+/* Footer */
+footer{background:var(--forest);color:rgba(255,255,255,.65);text-align:center;padding:15px;font-size:.82rem;margin-top:60px}
+
+/* Print */
+@media print{
+  #appAuth,#appStudent{display:none!important}
+  .fac-nav,button,.btn,footer,.table-wrap-header,.modal{display:none!important}
+  #appFaculty{display:block!important}
+  .fac-section{display:block!important}
+  #facActivity,#facAbout{display:none!important}
+}
+
+@media(max-width:768px){
+  .info-grid{grid-template-columns:1fr}
+  .info-field:last-child{border-bottom:none}
+  .profile-banner-content{padding:0 16px 0 140px}
+  .profile-body{padding:52px 18px 24px}
+  .reg-card-body{padding:20px}
+}
+</style>
+</head>
+<body>
+
+<!-- Toast -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- ══════════════════════════════════════════════════════════
+     AUTH — LOGIN VIEW
+══════════════════════════════════════════════════════════ -->
+<div id="authLogin" class="auth-bg">
+  <div class="auth-school">
+    <div class="auth-school-icon"><i class="bi bi-mortarboard-fill"></i></div>
+    <h2>CICS Student Record Management</h2>
+    <p>Marinduque State University</p>
+  </div>
+
+  <div class="login-card">
+    <div class="login-card-header">
+      <h3 id="loginCardTitle">Welcome Back</h3>
+      <p id="loginCardSub">Sign in to your portal</p>
+    </div>
+    <div class="login-card-body">
+      <!-- Role tabs -->
+      <div class="role-tabs" id="roleTabs">
+        <div class="role-tab active" id="tabStudent" onclick="switchLoginTab('student')">
+          <i class="bi bi-person-fill"></i> Student
+        </div>
+        <div class="role-tab" id="tabFaculty" onclick="switchLoginTab('faculty')">
+          <i class="bi bi-person-badge-fill"></i> Faculty
+        </div>
+      </div>
+
+      <!-- Student login form -->
+      <div id="studentLoginForm">
+        <div class="mb-3">
+          <label class="form-label">Email Address</label>
+          <input type="email" class="form-control" id="sl_email" placeholder="your@email.com">
+          <div class="invalid-feedback">Enter a valid email.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Password</label>
+          <div class="input-group">
+            <input type="password" class="form-control" id="sl_password" placeholder="••••••••" style="border-radius:10px 0 0 10px">
+            <button class="btn btn-outline-secondary" type="button" onclick="togglePw('sl_password','sl_eye')" style="border-radius:0 10px 10px 0;border:1.5px solid var(--border)">
+              <i class="bi bi-eye" id="sl_eye"></i>
+            </button>
+          </div>
+        </div>
+        <button class="btn btn-forest w-100 mb-3" id="studentLoginBtn" onclick="doLogin('student')">
+          <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+        </button>
+        <p class="text-center text-muted" style="font-size:.83rem">
+          New student? <a href="#" onclick="showStudentRegister()" style="color:var(--emerald);font-weight:600">Register here</a>
+        </p>
+      </div>
+
+      <!-- Faculty login form -->
+      <div id="facultyLoginForm" class="d-none">
+        <div class="mb-3">
+          <label class="form-label">Faculty Email</label>
+          <input type="email" class="form-control" id="fl_email" placeholder="faculty@cics.edu.ph">
+          <div class="invalid-feedback">Enter a valid email.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Password</label>
+          <div class="input-group">
+            <input type="password" class="form-control" id="fl_password" placeholder="••••••••" style="border-radius:10px 0 0 10px">
+            <button class="btn btn-outline-secondary" type="button" onclick="togglePw('fl_password','fl_eye')" style="border-radius:0 10px 10px 0;border:1.5px solid var(--border)">
+              <i class="bi bi-eye" id="fl_eye"></i>
+            </button>
+          </div>
+        </div>
+        <button class="btn btn-forest w-100 mb-3" id="facultyLoginBtn" onclick="doLogin('faculty')">
+          <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+        </button>
+        <p class="text-center text-muted" style="font-size:.83rem">
+          New faculty? <a href="#" onclick="showFacultyRegister()" style="color:var(--emerald);font-weight:600">Register with faculty code</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     AUTH — STUDENT REGISTRATION VIEW
+══════════════════════════════════════════════════════════ -->
+<div id="authStudentReg" class="auth-bg d-none" style="justify-content:flex-start;padding-top:32px">
+  <div class="reg-wrap">
+    <button class="reg-back-btn" onclick="showAuthLogin()">
+      <i class="bi bi-arrow-left"></i> Back to Login
+    </button>
+    <div class="reg-card">
+      <div class="reg-card-header">
+        <h3><i class="bi bi-person-plus-fill me-2"></i>Student Registration</h3>
+        <p>Complete your profile — it will be <strong>locked</strong> after submission and cannot be changed</p>
+      </div>
+      <div class="reg-card-body">
+
+        <!-- Photo -->
+        <div class="section-divider"><i class="bi bi-camera-fill"></i>Profile Photo</div>
+        <div class="photo-upload-area">
+          <div class="photo-preview" id="srPhotoPreview" onclick="document.getElementById('srPhotoFile').click()">
+            <span id="srPhotoInitials" style="font-size:1.8rem">?</span>
+            <div class="photo-overlay"><i class="bi bi-camera"></i></div>
+          </div>
+          <input type="file" id="srPhotoFile" accept="image/*" style="display:none">
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('srPhotoFile').click()"><i class="bi bi-upload me-1"></i>Upload</button>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearSrPhoto()"><i class="bi bi-x me-1"></i>Clear</button>
+          </div>
+          <small class="text-muted" style="font-size:.73rem">JPG/PNG · max 2MB</small>
+        </div>
+        <input type="hidden" id="sr_photo">
+
+        <!-- Account -->
+        <div class="section-divider"><i class="bi bi-key-fill"></i>Account Credentials</div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <label class="form-label">Email <span class="text-danger">*</span></label>
+            <input type="email" class="form-control" id="sr_email" placeholder="your@email.com">
+            <div class="invalid-feedback">Valid email required.</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Password <span class="text-danger">*</span></label>
+            <input type="password" class="form-control" id="sr_password" placeholder="Min 8 chars">
+            <div class="invalid-feedback">Min 8 characters.</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
+            <input type="password" class="form-control" id="sr_confirm" placeholder="Repeat password">
+            <div class="invalid-feedback">Passwords must match.</div>
+          </div>
+        </div>
+
+        <!-- Student Info -->
+        <div class="section-divider"><i class="bi bi-person-fill"></i>Student Information</div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Student Number <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="sr_sno" placeholder="e.g. 2024-0001">
+            <div class="invalid-feedback">Required.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Full Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="sr_name" placeholder="Last, First Middle">
+            <div class="invalid-feedback">Required.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Contact Number</label>
+            <input type="tel" class="form-control" id="sr_contact" placeholder="e.g. 09171234567">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Birthday</label>
+            <input type="date" class="form-control" id="sr_birthday">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Home Address</label>
+            <textarea class="form-control" id="sr_address" rows="2" placeholder="Barangay, Municipality, Province"></textarea>
+          </div>
+        </div>
+
+        <!-- Academic -->
+        <div class="section-divider"><i class="bi bi-mortarboard-fill"></i>Academic Information</div>
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label class="form-label">Program <span class="text-danger">*</span></label>
+            <select class="form-select" id="sr_program">
+              <option value="">— Select —</option>
+              <option value="BS Information Technology">BS Information Technology</option>
+              <option value="BS Information Systems">BS Information Systems</option>
+            </select>
+            <div class="invalid-feedback">Required.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Year Level <span class="text-danger">*</span></label>
+            <select class="form-select" id="sr_year">
+              <option value="">— Select —</option>
+              <option value="1">1st Year</option>
+              <option value="2">2nd Year</option>
+              <option value="3">3rd Year</option>
+              <option value="4">4th Year</option>
+            </select>
+            <div class="invalid-feedback">Required.</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Section</label>
+            <input type="text" class="form-control" id="sr_section" placeholder="e.g. IT-2A">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">School Year</label>
+            <select class="form-select" id="sr_sy">
+              <option value="">— Select —</option>
+              <option value="2022-2023">2022–2023</option>
+              <option value="2023-2024">2023–2024</option>
+              <option value="2024-2025">2024–2025</option>
+              <option value="2025-2026">2025–2026</option>
+              <option value="2026-2027">2026–2027</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Semester</label>
+            <select class="form-select" id="sr_semester">
+              <option value="1st">1st Semester</option>
+              <option value="2nd">2nd Semester</option>
+              <option value="Summer">Summer</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Warning + Submit -->
+        <div class="alert d-flex align-items-start gap-3 mb-3" style="background:#fef3c7;border:1px solid #fde68a;border-radius:12px;color:#92400e;padding:14px 16px">
+          <i class="bi bi-lock-fill flex-shrink-0" style="margin-top:2px"></i>
+          <div style="font-size:.86rem"><strong>Important:</strong> Once you submit, your profile will be permanently locked. Make sure all information is correct before continuing.</div>
+        </div>
+        <button class="btn btn-forest w-100" id="srSubmitBtn" onclick="submitStudentRegister()">
+          <i class="bi bi-person-check me-2"></i>Complete Registration
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     AUTH — FACULTY REGISTRATION VIEW
+══════════════════════════════════════════════════════════ -->
+<div id="authFacultyReg" class="auth-bg d-none">
+  <div class="auth-school" style="margin-bottom:18px">
+    <div class="auth-school-icon"><i class="bi bi-person-badge-fill"></i></div>
+    <h2>Faculty Registration</h2>
+    <p>A valid faculty code is required</p>
+  </div>
+  <div class="login-card">
+    <div class="login-card-body">
+      <button class="reg-back-btn mb-3" onclick="showAuthLogin()" style="display:inline-flex">
+        <i class="bi bi-arrow-left"></i> Back to Login
+      </button>
+      <div class="mb-3">
+        <label class="form-label">Full Name <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" id="fr_name" placeholder="e.g. Prof. Ana Cruz">
+        <div class="invalid-feedback">Required.</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Email Address <span class="text-danger">*</span></label>
+        <input type="email" class="form-control" id="fr_email" placeholder="faculty@cics.edu.ph">
+        <div class="invalid-feedback">Valid email required.</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Password <span class="text-danger">*</span></label>
+        <input type="password" class="form-control" id="fr_password" placeholder="Min 8 characters">
+        <div class="invalid-feedback">Min 8 characters.</div>
+      </div>
+      <div class="mb-4">
+        <label class="form-label">Faculty Registration Code <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" id="fr_code" placeholder="Provided by department admin" style="letter-spacing:.1em">
+        <div class="invalid-feedback">Code is required.</div>
+        <div style="font-size:.75rem;color:var(--muted);margin-top:5px"><i class="bi bi-info-circle me-1"></i>Contact your department admin for the registration code.</div>
+      </div>
+      <button class="btn btn-forest w-100" id="frSubmitBtn" onclick="submitFacultyRegister()">
+        <i class="bi bi-person-badge me-2"></i>Create Faculty Account
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     STUDENT PORTAL
+══════════════════════════════════════════════════════════ -->
+<div id="appStudent" class="d-none">
+  <nav class="stu-nav">
+    <div class="container d-flex align-items-center justify-content-between">
+      <span class="brand text-white"><i class="bi bi-mortarboard-fill me-2"></i>CICS SRMS</span>
+      <div class="d-flex align-items-center gap-3">
+        <span id="stuNavName" class="text-white" style="font-size:.88rem;opacity:.85"></span>
+        <button class="btn btn-sm btn-outline-light" onclick="logout()"><i class="bi bi-box-arrow-right me-1"></i>Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="student-profile-wrap">
+    <div class="profile-card">
+      <div class="profile-banner">
+        <div class="profile-photo-wrap">
+          <div class="profile-photo" id="stuProfilePhoto"></div>
+        </div>
+      </div>
+      <div class="profile-body">
+        <h2 class="profile-name" id="stuProfileName">—</h2>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px">
+          <span class="program-badge badge-bsit" id="stuProfileProgBadge">—</span>
+          <span class="locked-notice"><i class="bi bi-lock-fill"></i>Profile Locked</span>
+        </div>
+
+        <div class="info-grid" id="stuInfoGrid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+    <p class="text-center text-muted mt-4" style="font-size:.82rem">
+      Need to update your information? Contact your faculty or department administrator.
+    </p>
+  </div>
+  <footer>© 2026 CICS Student Record Management System — Marinduque State University</footer>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     FACULTY APP
+══════════════════════════════════════════════════════════ -->
+<div id="appFaculty" class="d-none">
+  <nav class="fac-nav navbar navbar-dark">
+    <div class="container">
+      <span class="navbar-brand text-white"><i class="bi bi-mortarboard-fill me-2"></i>CICS SRMS</span>
+      <div class="d-flex align-items-center gap-1 flex-wrap">
+        <a class="fac-nav-link active" onclick="showFacSection('facDashboard')"><i class="bi bi-speedometer2 me-1"></i>Dashboard</a>
+        <a class="fac-nav-link" onclick="showFacSection('facActivity')"><i class="bi bi-clock-history me-1"></i>Activity</a>
+        <a class="fac-nav-link" onclick="showFacSection('facAbout')"><i class="bi bi-info-circle me-1"></i>About</a>
+        <span class="text-white" style="font-size:.8rem;opacity:.6;padding:0 6px">|</span>
+        <span id="facNavName" class="text-white" style="font-size:.82rem;opacity:.8"></span>
+        <button class="btn btn-sm btn-outline-light ms-1" onclick="logout()"><i class="bi bi-box-arrow-right me-1"></i>Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Dashboard Section -->
+  <div id="facDashboard" class="fac-section">
+    <div class="container mt-4">
+      <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+        <div>
+          <h2 class="mb-1">Dashboard</h2>
+          <p class="text-muted mb-0" style="font-size:.86rem">Manage student records</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-outline-forest btn-sm" onclick="exportCSV()"><i class="bi bi-download me-1"></i>CSV</button>
+          <button class="btn btn-outline-forest btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print</button>
+          <button class="btn btn-forest" onclick="openAddModal()"><i class="bi bi-plus-lg me-2"></i>Add Student</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3"><div class="stat-card stat-1"><i class="bi bi-people-fill stat-icon"></i><div class="stat-number" id="statTotal">—</div><div class="stat-label">Total Students</div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card stat-2"><i class="bi bi-cpu-fill stat-icon"></i><div class="stat-number" id="statBSIT">—</div><div class="stat-label">BSIT</div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card stat-3"><i class="bi bi-diagram-3-fill stat-icon"></i><div class="stat-number" id="statBSIS">—</div><div class="stat-label">BSIS</div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card stat-4"><i class="bi bi-check-circle-fill stat-icon"></i><div class="stat-number" id="statActive">—</div><div class="stat-label">Active</div></div></div>
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-6 col-md-3"><div class="mini-stat"><div class="mini-stat-icon" style="background:#064e3b">1</div><div><div class="mini-stat-num" id="statYr1">—</div><div class="mini-stat-lbl">1st Year</div></div></div></div>
+        <div class="col-6 col-md-3"><div class="mini-stat"><div class="mini-stat-icon" style="background:#065f46">2</div><div><div class="mini-stat-num" id="statYr2">—</div><div class="mini-stat-lbl">2nd Year</div></div></div></div>
+        <div class="col-6 col-md-3"><div class="mini-stat"><div class="mini-stat-icon" style="background:#047857">3</div><div><div class="mini-stat-num" id="statYr3">—</div><div class="mini-stat-lbl">3rd Year</div></div></div></div>
+        <div class="col-6 col-md-3"><div class="mini-stat"><div class="mini-stat-icon" style="background:#059669">4</div><div><div class="mini-stat-num" id="statYr4">—</div><div class="mini-stat-lbl">4th Year</div></div></div></div>
+      </div>
+
+      <!-- Filters + Table -->
+      <div class="table-wrap">
+        <div class="table-wrap-header">
+          <div class="search-box">
+            <i class="bi bi-search"></i>
+            <input type="text" id="searchInput" placeholder="Search…" oninput="debounceSearch()">
+          </div>
+          <div class="d-flex gap-2 align-items-center flex-wrap">
+            <select class="form-select form-select-sm" id="filterProgram" style="border-radius:8px;width:auto;font-size:.8rem" onchange="loadStudents()">
+              <option value="">All Programs</option>
+              <option value="BS Information Technology">BSIT</option>
+              <option value="BS Information Systems">BSIS</option>
+            </select>
+            <select class="form-select form-select-sm" id="filterYear" style="border-radius:8px;width:auto;font-size:.8rem" onchange="loadStudents()">
+              <option value="">All Years</option>
+              <option value="1">1st Year</option>
+              <option value="2">2nd Year</option>
+              <option value="3">3rd Year</option>
+              <option value="4">4th Year</option>
+            </select>
+            <select class="form-select form-select-sm" id="filterStatus" style="border-radius:8px;width:auto;font-size:.8rem" onchange="loadStudents()">
+              <option value="">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Graduated">Graduated</option>
+              <option value="LOA">LOA</option>
+            </select>
+            <button class="btn btn-sm btn-outline-secondary" onclick="loadStudents()"><i class="bi bi-arrow-clockwise"></i></button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th style="width:42px"></th>
+                <th>Student</th>
+                <th>Program / Section</th>
+                <th>Year</th>
+                <th>Status</th>
+                <th style="width:138px">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="studentTable">
+              <tr><td colspan="6"><div class="empty-state"><i class="bi bi-hourglass-split"></i>Loading…</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <footer>© 2026 CICS Student Record Management System — Marinduque State University</footer>
+  </div>
+
+  <!-- Activity Section -->
+  <div id="facActivity" class="fac-section d-none">
+    <div class="container mt-4">
+      <div class="d-flex align-items-center justify-content-between mb-4">
+        <div><h2 class="mb-1">Activity Log</h2><p class="text-muted mb-0" style="font-size:.86rem">All record changes</p></div>
+        <button class="btn btn-outline-forest btn-sm" onclick="loadActivity()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+      </div>
+      <div class="about-card"><div id="activityList"><div class="empty-state"><i class="bi bi-hourglass-split"></i>Loading…</div></div></div>
+    </div>
+  </div>
+
+  <!-- About Section -->
+  <div id="facAbout" class="fac-section d-none">
+    <div class="container mt-4">
+      <div class="about-card">
+        <h2 class="mb-3">About CICS SRMS</h2>
+        <p style="line-height:1.8;color:var(--muted)">The <strong style="color:var(--forest)">CICS Student Record Management System</strong> is a role-based web platform for the College of Information and Computing Sciences at <strong>Marinduque State University</strong>.</p>
+        <hr class="my-4">
+        <div class="row g-3">
+          <div class="col-md-6"><div style="padding:16px;background:var(--cream);border-radius:12px"><i class="bi bi-person-badge text-success fs-4 mb-2 d-block"></i><h6 class="fw-bold">Faculty Controls</h6><p class="text-muted mb-0" style="font-size:.84rem">Add, edit, delete, view, unlock student records. Full search/filter + CSV export + activity audit trail.</p></div></div>
+          <div class="col-md-6"><div style="padding:16px;background:var(--cream);border-radius:12px"><i class="bi bi-lock-fill text-success fs-4 mb-2 d-block"></i><h6 class="fw-bold">Student Self-Registration</h6><p class="text-muted mb-0" style="font-size:.84rem">Students submit their own profiles with photo. Once submitted, the record is locked — only faculty can unlock.</p></div></div>
+          <div class="col-md-6"><div style="padding:16px;background:var(--cream);border-radius:12px"><i class="bi bi-shield-check text-success fs-4 mb-2 d-block"></i><h6 class="fw-bold">Secure</h6><p class="text-muted mb-0" style="font-size:.84rem">PDO prepared statements, bcrypt passwords, role-based access control, full activity logging.</p></div></div>
+          <div class="col-md-6"><div style="padding:16px;background:var(--cream);border-radius:12px"><i class="bi bi-key-fill text-success fs-4 mb-2 d-block"></i><h6 class="fw-bold">Faculty Code</h6><p class="text-muted mb-0" style="font-size:.84rem">Faculty accounts require a registration code set in <code>api.php</code>. Default: <code>CICS-FACULTY-2026</code>.</p></div></div>
+        </div>
+        <div class="mt-4 p-3" style="background:#d1fae5;border-radius:12px;border:1px solid #6ee7b7">
+          <p class="mb-0" style="font-size:.83rem;color:#065f46"><i class="bi bi-info-circle-fill me-2"></i><strong>Stack:</strong> PHP 8+ PDO (MySQL) · Vanilla JS Fetch API · Bootstrap 5.3 · DM Sans & DM Serif Display</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     FACULTY MODALS
+══════════════════════════════════════════════════════════ -->
+
+<!-- Add / Edit Student -->
+<div class="modal fade" id="studentModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title mb-0" id="modalTitle">Add Student</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="studentForm" novalidate>
+          <input type="hidden" id="edit_id">
+          <!-- Photo -->
+          <div class="photo-upload-area">
+            <div class="photo-preview" id="fPhotoPreview" onclick="document.getElementById('fPhotoFile').click()">
+              <span id="fPhotoInitials">?</span>
+              <div class="photo-overlay"><i class="bi bi-camera"></i></div>
+            </div>
+            <input type="file" id="fPhotoFile" accept="image/*" style="display:none">
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('fPhotoFile').click()"><i class="bi bi-upload me-1"></i>Upload</button>
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearFPhoto()"><i class="bi bi-x me-1"></i>Clear</button>
+            </div>
+          </div>
+          <input type="hidden" id="f_photo">
+
+          <div class="section-divider"><i class="bi bi-person-fill"></i>Basic Information</div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6"><label class="form-label">Student No. <span class="text-danger">*</span></label><input type="text" class="form-control" id="f_sno" placeholder="2024-0001"><div class="invalid-feedback">Required.</div></div>
+            <div class="col-md-6"><label class="form-label">Full Name <span class="text-danger">*</span></label><input type="text" class="form-control" id="f_name"><div class="invalid-feedback">Required.</div></div>
+            <div class="col-md-6"><label class="form-label">Email <span class="text-danger">*</span></label><input type="email" class="form-control" id="f_email"><div class="invalid-feedback">Valid email required.</div></div>
+            <div class="col-md-6"><label class="form-label">Contact No.</label><input type="tel" class="form-control" id="f_contact" placeholder="09171234567"></div>
+          </div>
+
+          <div class="section-divider"><i class="bi bi-mortarboard-fill"></i>Academic Information</div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6"><label class="form-label">Program <span class="text-danger">*</span></label><select class="form-select" id="f_program"><option value="">— Select —</option><option value="BS Information Technology">BS Information Technology</option><option value="BS Information Systems">BS Information Systems</option></select><div class="invalid-feedback">Required.</div></div>
+            <div class="col-md-6"><label class="form-label">Year Level <span class="text-danger">*</span></label><select class="form-select" id="f_year"><option value="">— Select —</option><option value="1">1st Year</option><option value="2">2nd Year</option><option value="3">3rd Year</option><option value="4">4th Year</option></select><div class="invalid-feedback">Required.</div></div>
+            <div class="col-md-4"><label class="form-label">Section</label><input type="text" class="form-control" id="f_section" placeholder="IT-2A"></div>
+            <div class="col-md-4"><label class="form-label">School Year</label><select class="form-select" id="f_sy"><option value="">— Select —</option><option value="2022-2023">2022–2023</option><option value="2023-2024">2023–2024</option><option value="2024-2025">2024–2025</option><option value="2025-2026">2025–2026</option><option value="2026-2027">2026–2027</option></select></div>
+            <div class="col-md-4"><label class="form-label">Semester</label><select class="form-select" id="f_semester"><option value="1st">1st Semester</option><option value="2nd">2nd Semester</option><option value="Summer">Summer</option></select></div>
+            <div class="col-md-6"><label class="form-label">Status</label><select class="form-select" id="f_status"><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Graduated">Graduated</option><option value="LOA">Leave of Absence</option></select></div>
+            <div class="col-md-6"><label class="form-label">Birthday</label><input type="date" class="form-control" id="f_birthday"></div>
+          </div>
+
+          <div class="section-divider"><i class="bi bi-info-circle"></i>Personal</div>
+          <div class="row g-3">
+            <div class="col-12"><label class="form-label">Address</label><textarea class="form-control" id="f_address" rows="2"></textarea></div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-forest" id="saveBtn" onclick="saveStudent()"><i class="bi bi-check2 me-1"></i>Save Student</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View Student -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:20px;overflow:hidden">
+      <div class="view-banner"></div>
+      <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal" style="top:12px;right:14px;filter:invert(1);z-index:10"></button>
+      <div class="modal-body pt-0 pb-4 px-4">
+        <div style="text-align:center">
+          <div class="view-avatar" id="va"></div>
+          <h4 id="vName" class="mb-1"></h4>
+          <div class="d-flex justify-content-center align-items-center gap-2 mb-3 flex-wrap">
+            <span id="vBadge" class="badge-prog"></span>
+            <span id="vLocked"></span>
+          </div>
+        </div>
+        <div id="vFields"></div>
+        <div class="mt-3 d-flex gap-2 justify-content-center" id="vActions"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header" style="background:#fee2e2;border-radius:20px 20px 0 0">
+        <h5 class="modal-title" style="color:#991b1b"><i class="bi bi-exclamation-triangle me-2"></i>Delete Student</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center py-4">
+        <p class="mb-1">Delete <strong id="deleteStudentName">this student</strong>?</p>
+        <p class="text-muted mt-2 mb-0" style="font-size:.82rem">This also removes their login account if they self-registered. Cannot be undone.</p>
+      </div>
+      <div class="modal-footer justify-content-center border-0 pb-4">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-del" id="confirmDeleteBtn"><i class="bi bi-trash me-1"></i>Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════════════════════════ */
+const API = 'api.php';
+
+/* ═══════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════ */
+let currentUser = null;
+
+function saveUser(u){ currentUser=u; sessionStorage.setItem('cics_user', JSON.stringify(u)); }
+function clearUser(){ currentUser=null; sessionStorage.removeItem('cics_user'); }
+
+/* ═══════════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════════ */
+function toast(msg,type='success'){
+  const wrap=document.getElementById('toastWrap');
+  const icon=type==='success'?'check-circle-fill':type==='error'?'x-circle-fill':'info-circle-fill';
+  const el=document.createElement('div');
+  el.className=`toast-msg toast-${type}`;
+  el.innerHTML=`<i class="bi bi-${icon}"></i><span>${msg}</span>`;
+  wrap.appendChild(el);
+  setTimeout(()=>{el.style.cssText='animation:none;opacity:0;transform:translateX(120%);transition:.3s';setTimeout(()=>el.remove(),300);},3500);
+}
+async function apiGet(p={}){ return (await fetch(`${API}?${new URLSearchParams(p)}`)).json(); }
+async function apiPost(b={}){ return (await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})).json(); }
+function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function initials(n){ return String(n||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+function calcAge(b){ if(!b)return''; const d=new Date(b),now=new Date(); let a=now.getFullYear()-d.getFullYear(); if(now<new Date(now.getFullYear(),d.getMonth(),d.getDate()))a--; return a>=0?`${a} yrs old`:''; }
+function statusBadge(s){ const cls={Active:'status-active',Inactive:'status-inactive',Graduated:'status-graduated',LOA:'status-loa'}[s]||'status-inactive'; return `<span class="status-badge ${cls}">${esc(s||'—')}</span>`; }
+function togglePw(id,eyeId){ const el=document.getElementById(id); const ic=document.getElementById(eyeId); el.type=el.type==='password'?'text':'password'; ic.className=el.type==='password'?'bi bi-eye':'bi bi-eye-slash'; }
+
+function setPhotoPreview(previewId,initialsId,photoData,name){
+  const pr=document.getElementById(previewId);
+  pr.innerHTML='';
+  if(photoData){ pr.innerHTML=`<img src="${esc(photoData)}" alt=""><div class="photo-overlay"><i class="bi bi-camera"></i></div>`; }
+  else{ const sp=document.createElement('span'); sp.id=initialsId; sp.textContent=initials(name||'?'); sp.style.fontSize='1.8rem'; pr.appendChild(sp); pr.insertAdjacentHTML('beforeend','<div class="photo-overlay"><i class="bi bi-camera"></i></div>'); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   APP ROUTING
+═══════════════════════════════════════════════════════════ */
+function hideAll(){
+  ['authLogin','authStudentReg','authFacultyReg','appStudent','appFaculty'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.classList.add('d-none'); }
+  });
+}
+
+function showAuthLogin(){
+  hideAll();
+  document.getElementById('authLogin').classList.remove('d-none');
+}
+function showStudentRegister(){
+  hideAll();
+  document.getElementById('authStudentReg').classList.remove('d-none');
+  window.scrollTo(0,0);
+}
+function showFacultyRegister(){
+  hideAll();
+  document.getElementById('authFacultyReg').classList.remove('d-none');
+}
+function showStudentPortal(){
+  hideAll();
+  document.getElementById('appStudent').classList.remove('d-none');
+  document.getElementById('stuNavName').textContent=currentUser.full_name;
+  loadStudentProfile();
+}
+function showFacultyApp(){
+  hideAll();
+  document.getElementById('appFaculty').classList.remove('d-none');
+  document.getElementById('facNavName').textContent=currentUser.full_name;
+  showFacSection('facDashboard');
+}
+
+function showFacSection(id){
+  document.querySelectorAll('.fac-section').forEach(s=>s.classList.add('d-none'));
+  document.getElementById(id)?.classList.remove('d-none');
+  document.querySelectorAll('.fac-nav-link').forEach(l=>l.classList.remove('active'));
+  const map={facDashboard:0,facActivity:1,facAbout:2};
+  const links=document.querySelectorAll('.fac-nav-link');
+  if(links[map[id]])links[map[id]].classList.add('active');
+  if(id==='facDashboard') loadStudents();
+  if(id==='facActivity')  loadActivity();
+}
+
+function logout(){
+  clearUser();
+  showAuthLogin();
+  toast('Signed out successfully.','info');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AUTH — LOGIN TAB SWITCH
+═══════════════════════════════════════════════════════════ */
+function switchLoginTab(role){
+  document.getElementById('tabStudent').classList.toggle('active',role==='student');
+  document.getElementById('tabFaculty').classList.toggle('active',role==='faculty');
+  document.getElementById('studentLoginForm').classList.toggle('d-none',role!=='student');
+  document.getElementById('facultyLoginForm').classList.toggle('d-none',role!=='faculty');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AUTH — LOGIN
+═══════════════════════════════════════════════════════════ */
+async function doLogin(role){
+  const emailId = role==='student'?'sl_email':'fl_email';
+  const passId  = role==='student'?'sl_password':'fl_password';
+  const btnId   = role==='student'?'studentLoginBtn':'facultyLoginBtn';
+  const email   = document.getElementById(emailId).value.trim();
+  const pass    = document.getElementById(passId).value;
+
+  if(!email||!pass){ toast('Email and password are required.','error'); return; }
+
+  const btn=document.getElementById(btnId);
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Signing in…';
+
+  try{
+    const data=await apiPost({action:'login',email,password:pass});
+    if(!data.success){ toast(data.error||'Login failed.','error'); return; }
+    const u=data.user;
+    if(u.role!==role){ toast(`This account is registered as a ${u.role}. Please use the correct tab.`,'error'); return; }
+    saveUser(u);
+    if(u.role==='student') showStudentPortal();
+    else                   showFacultyApp();
+  }catch{ toast('Server error. Is PHP running?','error'); }
+  finally{ btn.disabled=false; btn.innerHTML='<i class="bi bi-box-arrow-in-right me-2"></i>Sign In'; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AUTH — STUDENT REGISTER
+═══════════════════════════════════════════════════════════ */
+document.getElementById('srPhotoFile').addEventListener('change',function(){
+  const f=this.files[0]; if(!f)return;
+  if(!f.type.startsWith('image/')){ toast('Select an image file.','error'); return; }
+  if(f.size>2*1024*1024){ toast('Photo must be under 2MB.','error'); return; }
+  const r=new FileReader();
+  r.onload=e=>{ document.getElementById('sr_photo').value=e.target.result; setPhotoPreview('srPhotoPreview','srPhotoInitials',e.target.result,''); };
+  r.readAsDataURL(f);
+});
+function clearSrPhoto(){ document.getElementById('sr_photo').value=''; document.getElementById('srPhotoFile').value=''; setPhotoPreview('srPhotoPreview','srPhotoInitials','',document.getElementById('sr_name').value); }
+document.getElementById('sr_name').addEventListener('input',function(){ if(!document.getElementById('sr_photo').value){ const sp=document.getElementById('srPhotoInitials'); if(sp)sp.textContent=initials(this.value); } });
+
+async function submitStudentRegister(){
+  // Clear invalid states
+  document.querySelectorAll('#authStudentReg .is-invalid').forEach(e=>e.classList.remove('is-invalid'));
+
+  const vals={
+    sr_sno:    document.getElementById('sr_sno').value.trim(),
+    sr_name:   document.getElementById('sr_name').value.trim(),
+    sr_email:  document.getElementById('sr_email').value.trim(),
+    sr_password:document.getElementById('sr_password').value,
+    sr_confirm: document.getElementById('sr_confirm').value,
+    sr_program: document.getElementById('sr_program').value,
+    sr_year:    document.getElementById('sr_year').value,
+  };
+
+  let valid=true;
+  if(!vals.sr_sno)    { document.getElementById('sr_sno').classList.add('is-invalid');    valid=false; }
+  if(!vals.sr_name)   { document.getElementById('sr_name').classList.add('is-invalid');   valid=false; }
+  if(!vals.sr_email||!/^[^@]+@[^@]+\.[^@]+$/.test(vals.sr_email)) { document.getElementById('sr_email').classList.add('is-invalid'); valid=false; }
+  if(vals.sr_password.length<8) { document.getElementById('sr_password').classList.add('is-invalid'); valid=false; }
+  if(vals.sr_password!==vals.sr_confirm) { document.getElementById('sr_confirm').classList.add('is-invalid'); valid=false; }
+  if(!vals.sr_program){ document.getElementById('sr_program').classList.add('is-invalid'); valid=false; }
+  if(!vals.sr_year)   { document.getElementById('sr_year').classList.add('is-invalid');   valid=false; }
+  if(!valid){ toast('Please fix the highlighted fields.','error'); return; }
+
+  const btn=document.getElementById('srSubmitBtn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Registering…';
+
+  try{
+    const data=await apiPost({
+      action:           'student_register',
+      student_no:       vals.sr_sno,
+      full_name:        vals.sr_name,
+      email:            vals.sr_email,
+      password:         vals.sr_password,
+      confirm_password: vals.sr_confirm,
+      program:          vals.sr_program,
+      year_level:       vals.sr_year,
+      section:          document.getElementById('sr_section').value.trim(),
+      school_year:      document.getElementById('sr_sy').value,
+      semester:         document.getElementById('sr_semester').value,
+      contact_no:       document.getElementById('sr_contact').value.trim(),
+      birthday:         document.getElementById('sr_birthday').value,
+      address:          document.getElementById('sr_address').value.trim(),
+      photo:            document.getElementById('sr_photo').value,
+      status:           'Active',
+    });
+    if(data.success){
+      toast('Registration complete! Welcome.','success');
+      saveUser(data.user);
+      showStudentPortal();
+    }else{ toast(data.error||'Registration failed.','error'); }
+  }catch{ toast('Server error. Is PHP running?','error'); }
+  finally{ btn.disabled=false; btn.innerHTML='<i class="bi bi-person-check me-2"></i>Complete Registration'; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AUTH — FACULTY REGISTER
+═══════════════════════════════════════════════════════════ */
+async function submitFacultyRegister(){
+  ['fr_name','fr_email','fr_password','fr_code'].forEach(id=>document.getElementById(id).classList.remove('is-invalid'));
+  const name=document.getElementById('fr_name').value.trim();
+  const email=document.getElementById('fr_email').value.trim();
+  const pass=document.getElementById('fr_password').value;
+  const code=document.getElementById('fr_code').value.trim();
+
+  let valid=true;
+  if(!name)  { document.getElementById('fr_name').classList.add('is-invalid');     valid=false; }
+  if(!email||!/^[^@]+@[^@]+\.[^@]+$/.test(email)) { document.getElementById('fr_email').classList.add('is-invalid'); valid=false; }
+  if(pass.length<8) { document.getElementById('fr_password').classList.add('is-invalid'); valid=false; }
+  if(!code)  { document.getElementById('fr_code').classList.add('is-invalid');     valid=false; }
+  if(!valid) return;
+
+  const btn=document.getElementById('frSubmitBtn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Creating…';
+
+  try{
+    const data=await apiPost({action:'faculty_register',full_name:name,email,password:pass,faculty_code:code});
+    if(data.success){
+      toast('Faculty account created! You can now log in.','success');
+      saveUser(data.user);
+      showFacultyApp();
+    }else{ toast(data.error||'Registration failed.','error'); }
+  }catch{ toast('Server error.','error'); }
+  finally{ btn.disabled=false; btn.innerHTML='<i class="bi bi-person-badge me-2"></i>Create Faculty Account'; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STUDENT PORTAL — Load profile
+═══════════════════════════════════════════════════════════ */
+async function loadStudentProfile(){
+  if(!currentUser?.student_id) return;
+  try{
+    const data=await apiGet({resource:'student',id:currentUser.student_id});
+    if(!data.success){ toast('Could not load your profile.','error'); return; }
+    const s=data.student;
+
+    // Photo
+    const photoEl=document.getElementById('stuProfilePhoto');
+    photoEl.innerHTML='';
+    if(s.photo){ photoEl.innerHTML=`<img src="${esc(s.photo)}" alt="">`; }
+    else{ photoEl.textContent=initials(s.full_name); }
+
+    document.getElementById('stuProfileName').textContent=s.full_name;
+    const pb=document.getElementById('stuProfileProgBadge');
+    pb.textContent=s.program==='BS Information Technology'?'BSIT':'BSIS';
+    pb.className=`program-badge ${s.program==='BS Information Technology'?'badge-bsit':'badge-bsis'}`;
+
+    const yr=['','1st Year','2nd Year','3rd Year','4th Year'];
+    const grid=document.getElementById('stuInfoGrid');
+    grid.innerHTML = `
+      <div class="info-section-head"><i class="bi bi-mortarboard-fill"></i>Academic</div>
+      ${field('person-badge-fill','Student No.',s.student_no)}
+      ${field('mortarboard-fill','Program',s.program)}
+      ${field('bookmark-fill','Year Level',yr[s.year_level]||s.year_level)}
+      ${field('grid-fill','Section',s.section||'—')}
+      ${field('calendar2-fill','School Year',s.school_year||'—')}
+      ${field('layers-fill','Semester',s.semester?s.semester+' Semester':'—')}
+      ${field('circle-fill','Status',null,statusBadge(s.status))}
+      <div class="info-section-head"><i class="bi bi-person-fill"></i>Personal</div>
+      ${field('envelope-fill','Email',s.email)}
+      ${field('telephone-fill','Contact',s.contact_no||'—')}
+      ${field('cake2-fill','Birthday',s.birthday?(s.birthday+' · '+calcAge(s.birthday)):'—')}
+      ${field('geo-alt-fill','Address',s.address||'—')}
+      ${field('clock-fill','Registered',s.created_at?new Date(s.created_at).toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'}):'—')}
+    `;
+  }catch{ toast('Failed to load profile.','error'); }
+}
+function field(icon,label,val,html){ return `<div class="info-field"><i class="bi bi-${icon}"></i><div><span class="info-field-label">${label}</span><div class="info-field-val">${html||esc(val)}</div></div></div>`; }
+
+/* ═══════════════════════════════════════════════════════════
+   FACULTY — LOAD STUDENTS
+═══════════════════════════════════════════════════════════ */
+let lastStudents=[];
+let searchTimer;
+function debounceSearch(){ clearTimeout(searchTimer); searchTimer=setTimeout(loadStudents,350); }
+
+async function loadStudents(){
+  const tbody=document.getElementById('studentTable');
+  tbody.innerHTML=`<tr><td colspan="6"><div class="empty-state"><i class="bi bi-hourglass-split"></i>Loading…</div></td></tr>`;
+  const params={resource:'students'};
+  const s=document.getElementById('searchInput')?.value.trim();
+  const p=document.getElementById('filterProgram')?.value;
+  const y=document.getElementById('filterYear')?.value;
+  const st=document.getElementById('filterStatus')?.value;
+  if(s) params.search=s;
+  if(p) params.program=p;
+  if(y) params.year=y;
+  if(st)params.status=st;
+
+  try{
+    const data=await apiGet(params);
+    if(!data.success){ tbody.innerHTML=`<tr><td colspan="6"><div class="empty-state"><i class="bi bi-wifi-off"></i>${data.error||'Failed.'}</div></td></tr>`; return; }
+    const st2=data.stats;
+    document.getElementById('statTotal').textContent =st2.total   ??0;
+    document.getElementById('statBSIT').textContent  =st2.bsit    ??0;
+    document.getElementById('statBSIS').textContent  =st2.bsis    ??0;
+    document.getElementById('statActive').textContent=st2.active  ??0;
+    document.getElementById('statYr1').textContent   =st2.yr1     ??0;
+    document.getElementById('statYr2').textContent   =st2.yr2     ??0;
+    document.getElementById('statYr3').textContent   =st2.yr3     ??0;
+    document.getElementById('statYr4').textContent   =st2.yr4     ??0;
+    lastStudents=data.students;
+
+    if(!data.students.length){
+      tbody.innerHTML=`<tr><td colspan="6"><div class="empty-state"><i class="bi bi-inbox"></i>No students found. <a href="#" onclick="openAddModal()" style="color:var(--emerald)">Add one?</a></div></td></tr>`;
+      return;
+    }
+    const yrL=['','1st','2nd','3rd','4th'];
+    tbody.innerHTML=data.students.map(s=>{
+      const pc=s.program==='BS Information Technology'?'badge-bsit':'badge-bsis';
+      const ps=s.program==='BS Information Technology'?'BSIT':'BSIS';
+      const yr=yrL[s.year_level]??s.year_level;
+      const lockIcon=s.is_locked?`<i class="bi bi-lock-fill lock-icon" title="Self-registered (locked)"></i>`:'';
+      const av=s.photo?`<div class="s-avatar"><img src="${esc(s.photo)}" alt=""></div>`:`<div class="s-avatar">${initials(s.full_name)}</div>`;
+      const sec=s.section?`<span class="text-muted" style="font-size:.75rem"> · ${esc(s.section)}</span>`:'';
+      return `<tr>
+        <td>${av}</td>
+        <td><strong>${esc(s.full_name)}</strong>${lockIcon}<br><small class="text-muted">${esc(s.student_no)} · ${esc(s.email)}</small></td>
+        <td><span class="badge-prog ${pc}">${ps}</span>${sec}</td>
+        <td><span class="badge-yr">${yr}</span></td>
+        <td>${statusBadge(s.status)}</td>
+        <td>
+          <button class="btn btn-view btn-sm me-1" onclick="openViewModal(${s.id})" title="View"><i class="bi bi-eye"></i></button>
+          <button class="btn btn-edit btn-sm me-1" onclick="openEditModal(${s.id})" title="Edit"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-del btn-sm" onclick="confirmDelete(${s.id},'${esc(s.full_name)}')" title="Delete"><i class="bi bi-trash"></i></button>
+        </td>
+      </tr>`;
+    }).join('');
+  }catch{
+    tbody.innerHTML=`<tr><td colspan="6"><div class="empty-state"><i class="bi bi-exclamation-triangle"></i>Cannot connect to API.</div></td></tr>`;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FACULTY — ADD/EDIT MODAL
+═══════════════════════════════════════════════════════════ */
+const studentModal=new bootstrap.Modal(document.getElementById('studentModal'));
+
+document.getElementById('fPhotoFile').addEventListener('change',function(){
+  const f=this.files[0]; if(!f) return;
+  if(!f.type.startsWith('image/')){ toast('Select an image.','error'); return; }
+  if(f.size>2*1024*1024){ toast('Max 2MB.','error'); return; }
+  const r=new FileReader();
+  r.onload=e=>{ document.getElementById('f_photo').value=e.target.result; setPhotoPreview('fPhotoPreview','fPhotoInitials',e.target.result,''); };
+  r.readAsDataURL(f);
+});
+document.getElementById('f_name').addEventListener('input',function(){ if(!document.getElementById('f_photo').value){ const sp=document.getElementById('fPhotoInitials'); if(sp)sp.textContent=initials(this.value); } });
+function clearFPhoto(){ document.getElementById('f_photo').value=''; document.getElementById('fPhotoFile').value=''; setPhotoPreview('fPhotoPreview','fPhotoInitials','',document.getElementById('f_name').value); }
+
+function clearFormErrors(){ document.querySelectorAll('#studentForm .is-invalid').forEach(e=>e.classList.remove('is-invalid')); }
+function setInvalid(id,msg){ const el=document.getElementById(id); el.classList.add('is-invalid'); const fb=el.nextElementSibling; if(fb&&fb.classList.contains('invalid-feedback'))fb.textContent=msg; }
+
+function openAddModal(){
+  document.getElementById('modalTitle').textContent='Add Student';
+  document.getElementById('studentForm').reset();
+  document.getElementById('edit_id').value='';
+  clearFormErrors();
+  setPhotoPreview('fPhotoPreview','fPhotoInitials','','');
+  studentModal.show();
+}
+async function openEditModal(id){
+  document.getElementById('modalTitle').textContent='Edit Student';
+  clearFormErrors();
+  try{
+    const data=await apiGet({resource:'student',id});
+    if(!data.success){ toast(data.error||'Load failed.','error'); return; }
+    const s=data.student;
+    document.getElementById('edit_id').value   =s.id;
+    document.getElementById('f_sno').value     =s.student_no   ||'';
+    document.getElementById('f_name').value    =s.full_name    ||'';
+    document.getElementById('f_email').value   =s.email        ||'';
+    document.getElementById('f_contact').value =s.contact_no   ||'';
+    document.getElementById('f_program').value =s.program      ||'';
+    document.getElementById('f_year').value    =s.year_level   ||'';
+    document.getElementById('f_section').value =s.section      ||'';
+    document.getElementById('f_sy').value      =s.school_year  ||'';
+    document.getElementById('f_semester').value=s.semester     ||'1st';
+    document.getElementById('f_status').value  =s.status       ||'Active';
+    document.getElementById('f_birthday').value=s.birthday     ||'';
+    document.getElementById('f_address').value =s.address      ||'';
+    setPhotoPreview('fPhotoPreview','fPhotoInitials',s.photo||'',s.full_name);
+    if(s.is_locked) toast('⚠ This record is self-registered (locked). Faculty can still edit it.','info');
+    studentModal.show();
+  }catch{ toast('Failed to load student.','error'); }
+}
+
+async function saveStudent(){
+  clearFormErrors();
+  const id=document.getElementById('edit_id').value;
+  const sno=document.getElementById('f_sno').value.trim();
+  const name=document.getElementById('f_name').value.trim();
+  const email=document.getElementById('f_email').value.trim();
+  const program=document.getElementById('f_program').value;
+  const year=document.getElementById('f_year').value;
+
+  let valid=true;
+  if(!sno)    {setInvalid('f_sno',   'Required.');     valid=false;}
+  if(!name)   {setInvalid('f_name',  'Required.');     valid=false;}
+  if(!email||!/^[^@]+@[^@]+\.[^@]+$/.test(email)){setInvalid('f_email','Valid email required.'); valid=false;}
+  if(!program){setInvalid('f_program','Required.');    valid=false;}
+  if(!year)   {setInvalid('f_year',  'Required.');     valid=false;}
+  if(!valid) return;
+
+  const btn=document.getElementById('saveBtn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Saving…';
+
+  try{
+    const payload={
+      action:       id?'update':'create',
+      student_no:   sno, full_name:name, email, program, year_level:year,
+      section:      document.getElementById('f_section').value.trim(),
+      school_year:  document.getElementById('f_sy').value,
+      semester:     document.getElementById('f_semester').value,
+      status:       document.getElementById('f_status').value,
+      contact_no:   document.getElementById('f_contact').value.trim(),
+      birthday:     document.getElementById('f_birthday').value,
+      address:      document.getElementById('f_address').value.trim(),
+      photo:        document.getElementById('f_photo').value,
+      requester_role:'faculty',
+      faculty_name: currentUser?.full_name||'Faculty',
+    };
+    if(id) payload.id=id;
+    const data=await apiPost(payload);
+    if(data.success){ toast(data.message,'success'); studentModal.hide(); loadStudents(); }
+    else             { toast(data.error||'Failed.','error'); }
+  }catch{ toast('Server error.','error'); }
+  finally{ btn.disabled=false; btn.innerHTML='<i class="bi bi-check2 me-1"></i>Save Student'; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FACULTY — VIEW MODAL
+═══════════════════════════════════════════════════════════ */
+const viewModal=new bootstrap.Modal(document.getElementById('viewModal'));
+
+async function openViewModal(id){
+  try{
+    const data=await apiGet({resource:'student',id});
+    if(!data.success){ toast(data.error||'Load failed.','error'); return; }
+    const s=data.student;
+    const va=document.getElementById('va');
+    va.innerHTML=s.photo?`<img src="${esc(s.photo)}" alt="">`:initials(s.full_name);
+    document.getElementById('vName').textContent=s.full_name;
+    const vb=document.getElementById('vBadge');
+    vb.textContent=s.program==='BS Information Technology'?'BSIT':'BSIS';
+    vb.className=`badge-prog ${s.program==='BS Information Technology'?'badge-bsit':'badge-bsis'}`;
+    const lk=document.getElementById('vLocked');
+    lk.innerHTML=s.is_locked?'<span style="background:#fef3c7;color:#92400e;border-radius:999px;padding:3px 10px;font-size:.75rem;font-weight:600"><i class="bi bi-lock-fill me-1"></i>Self-Registered</span>':'';
+
+    const yr=['','1st Year','2nd Year','3rd Year','4th Year'];
+    const flds=[
+      ['person-badge-fill','Student No.',  s.student_no],
+      ['envelope-fill',    'Email',         s.email],
+      ['telephone-fill',   'Contact',       s.contact_no||'—'],
+      ['mortarboard-fill', 'Program',       s.program],
+      ['bookmark-fill',    'Year/Section',  `${yr[s.year_level]||s.year_level}${s.section?' · '+s.section:''}`],
+      ['calendar2-fill',   'School Year',   s.school_year||'—'],
+      ['layers-fill',      'Semester',      s.semester?s.semester+' Semester':'—'],
+      ['circle-fill',      'Status',        null, statusBadge(s.status)],
+      ['cake2-fill',       'Birthday',      s.birthday?(s.birthday+(calcAge(s.birthday)?' · '+calcAge(s.birthday):'')):'—'],
+      ['geo-alt-fill',     'Address',       s.address||'—'],
+      ['clock-fill',       'Registered',    s.created_at?new Date(s.created_at).toLocaleDateString('en-PH',{year:'numeric',month:'short',day:'numeric'}):'—'],
+    ];
+    document.getElementById('vFields').innerHTML=flds.map(([ic,lb,vl,ht])=>`<div class="view-field"><i class="bi bi-${ic}"></i><div><span class="view-field-label">${lb}</span>${ht||esc(vl)}</div></div>`).join('');
+
+    // Action buttons
+    const acts=document.getElementById('vActions');
+    acts.innerHTML=`<button class="btn btn-edit btn-sm" onclick="viewModal.hide();openEditModal(${s.id})"><i class="bi bi-pencil me-1"></i>Edit</button>`;
+    if(s.is_locked) acts.innerHTML+=`<button class="btn btn-unlock btn-sm" onclick="unlockStudent(${s.id})"><i class="bi bi-unlock-fill me-1"></i>Unlock Record</button>`;
+
+    viewModal.show();
+  }catch{ toast('Load failed.','error'); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FACULTY — UNLOCK
+═══════════════════════════════════════════════════════════ */
+async function unlockStudent(id){
+  if(!confirm('Unlock this record? The student will be able to self-edit if their account exists.')) return;
+  try{
+    const data=await apiPost({action:'unlock',id,faculty_name:currentUser?.full_name||'Faculty'});
+    if(data.success){ toast(data.message,'success'); viewModal.hide(); loadStudents(); }
+    else             { toast(data.error||'Failed.','error'); }
+  }catch{ toast('Server error.','error'); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FACULTY — DELETE
+═══════════════════════════════════════════════════════════ */
+let pendingDeleteId=null;
+const deleteModal=new bootstrap.Modal(document.getElementById('deleteModal'));
+
+function confirmDelete(id,name){
+  pendingDeleteId=id;
+  document.getElementById('deleteStudentName').textContent=name;
+  deleteModal.show();
+}
+document.getElementById('confirmDeleteBtn').addEventListener('click', async()=>{
+  if(!pendingDeleteId) return;
+  const btn=document.getElementById('confirmDeleteBtn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Deleting…';
+  try{
+    const data=await apiPost({action:'delete',id:pendingDeleteId,faculty_name:currentUser?.full_name||'Faculty'});
+    if(data.success){ toast(data.message,'success'); deleteModal.hide(); loadStudents(); }
+    else             { toast(data.error||'Failed.','error'); }
+  }catch{ toast('Server error.','error'); }
+  finally{ btn.disabled=false; btn.innerHTML='<i class="bi bi-trash me-1"></i>Delete'; pendingDeleteId=null; }
+});
+
+/* ═══════════════════════════════════════════════════════════
+   FACULTY — ACTIVITY LOG
+═══════════════════════════════════════════════════════════ */
+async function loadActivity(){
+  const el=document.getElementById('activityList');
+  el.innerHTML='<div class="empty-state"><i class="bi bi-hourglass-split"></i>Loading…</div>';
+  try{
+    const data=await apiGet({resource:'activity'});
+    if(!data.success||!data.logs.length){ el.innerHTML='<div class="empty-state"><i class="bi bi-journal-x"></i>No activity yet.</div>'; return; }
+    const map={
+      'CREATE':   ['log-create',  'plus-circle-fill','Added'],
+      'UPDATE':   ['log-update',  'pencil-fill',     'Updated'],
+      'DELETE':   ['log-delete',  'trash-fill',      'Deleted'],
+      'SELF-REGISTER':['log-register','person-plus-fill','Registered'],
+      'UNLOCK':   ['log-unlock',  'unlock-fill',     'Unlocked'],
+      'FACULTY-REGISTER':['log-register','person-badge-fill','Faculty Joined'],
+    };
+    el.innerHTML=data.logs.map(l=>{
+      const [cls,icon,verb]=map[l.action]||['log-update','info-circle','Changed'];
+      const time=new Date(l.performed_at).toLocaleString('en-PH',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      return `<div class="log-item">
+        <div class="log-icon ${cls}"><i class="bi bi-${icon}"></i></div>
+        <div>
+          <strong>${verb} ${esc(l.student_name||'record')}</strong>${l.student_no?` <span class="text-muted">· ${esc(l.student_no)}</span>`:''}
+          ${l.performed_by?`<span class="text-muted"> — by ${esc(l.performed_by)}</span>`:''}
+          ${l.details?`<br><span class="text-muted" style="font-size:.78rem">${esc(l.details)}</span>`:''}
+          <div class="log-time"><i class="bi bi-clock me-1"></i>${time}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch{ el.innerHTML='<div class="empty-state"><i class="bi bi-wifi-off"></i>Load failed.</div>'; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   EXPORT CSV
+═══════════════════════════════════════════════════════════ */
+function exportCSV(){
+  if(!lastStudents.length){ toast('No data to export.','info'); return; }
+  const cols=['student_no','full_name','email','program','year_level','section','school_year','semester','status','contact_no','birthday','address','created_at'];
+  const heads=['Student No','Full Name','Email','Program','Year','Section','School Year','Semester','Status','Contact','Birthday','Address','Registered'];
+  const rows=[heads,...lastStudents.map(s=>cols.map(c=>`"${String(s[c]??'').replace(/"/g,'""')}"`) )];
+  const blob=new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`cics_students_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('CSV exported.','success');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════════ */
+(function init(){
+  const stored=sessionStorage.getItem('cics_user');
+  if(stored){
+    try{
+      currentUser=JSON.parse(stored);
+      if(currentUser.role==='student') showStudentPortal();
+      else if(currentUser.role==='faculty') showFacultyApp();
+      else showAuthLogin();
+    }catch{ showAuthLogin(); }
+  } else {
+    showAuthLogin();
+  }
+})();
+</script>
+</body>
+</html>
